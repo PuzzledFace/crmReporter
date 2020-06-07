@@ -1,0 +1,32 @@
+#Workaround for devtools::check()'s "Undefined global functions or variables"
+Cohort <- NA
+DLT <- NA
+Dose <- NA
+SubjectID <- NA
+Toxicity<- NA
+x <- NA
+X <- NA
+Temp <- NA
+alpha1 <- NA
+XHat <- NA
+alpha2 <- NA
+Z1 <- NA
+Z2 <- NA
+Prob1 <- NA
+Prob2 <- NA
+Chain <- NA
+Sample <- NA
+Index <- NA
+Parameter <- NA
+Prob <- NA
+Prob <- NA
+. <- NA
+Quantile <- NA
+alpha <- NA
+Group <- NA
+Min <- NA
+Max <- NA
+Ribbon <- NA
+Band <- NA
+LowerLimit <- NA
+MaxIncrement <- NA

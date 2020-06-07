@@ -1,0 +1,33 @@
+Package: crmreporter
+Type: Package
+Title: Utility Functions for the Design and Reporting of CRM Trials
+Version: 0.1.0
+Author: person("John", "Kirkpatrick", email = "john.kirkpatrick@roche.com",
+                  role = c("aut", "cre"))
+Maintainer: John Kirkpatrick <john.kirkpatrick@roche.com>
+Description: A collection of functions for summarising the results of both
+   simulation studies during the design of a CRM trial, or for presenting the
+   results of an actual CRM trial, either for dose escalation meetings or in
+   the clinical study report.
+License: GPL-3
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 2.10)
+Suggests: 
+    runjags,
+    knitr,
+    rmarkdown,
+    crmPack,
+    officer,
+    kableExtra
+RoxygenNote: 6.1.0
+Imports: 
+    dplyr,
+    tidyr,
+    tibble,
+    rlang,
+    magrittr,
+    ggplot2,
+    methods
+VignetteBuilder: knitr
