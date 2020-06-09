@@ -1,7 +1,7 @@
 ---
-title: "Vignette Title"
-author: "Vignette Author"
-date: "`r Sys.Date()`"
+title: "crmReporter: an introduction"
+author: "John Kirkpatrick"
+date: "Last run on `r Sys.Date()` by `r Sys.info()[['user']]` on `r Sys.info()[['nodename']]`"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{Vignette Title}
@@ -14,52 +14,324 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+# 
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(knitr)
+library(tibble)
+library(kableExtra)
+```
+## Introduction
+The `crmReporter` package is designed to provide a simple interface between `crmPack` (and other MCMC packages) and [the tidyverse](www.tidyverse.org) and to augment the reporting facilities provided by `crmPack`, `coda`, `runjags` and other packages relating to MCMC simulation.
+
+The fundamental problem that `crmReporter` addresses is that objects such as `xxxx` in `crmPack` and `mcmc` and `runjags.list` in `runjags` are not tidy. For example, here is the head of a typical `mcmc` object created by `runjags`:
+
+```{r, echo=FALSE}
+library(crmReporter)
+data("oCRMPosteriorShort")
+head(oCRMPosteriorShort$mcmc[[1]])
+```
+This is not a [tidy](https://cran.r-project.org/web/packages/tidyr/vignettes/tidy-data.html) object.  One definition of a tidy object is that it satisfies the following conditions:
+
+1.  Each variable forms a column
+2.  Each observatiuon forms a row
+3.  Each type of observational unit forms a table.
+
+The `mcmc` object is not in normal form because not every variable forms a column (some of the information in the object - details of the MCMC chain - are contained in its attributes rather than in the columns) and because not every observation forms a row (the indices of the alpha coefficients appear in the column names rather than in the data itself).
+
+Also, as an aside, the names of two of the columns (`alpha[1]` and `alpha[2]`) make them very awkward to use - they are not two columns of an array called `alpha`...
+
+Whilst it's possible to use use `tidyverse` verbs on untidy data, it's much harder to do so (and much more error-prone) than if the data is tidy.  As an example, consider how to report the mean values of the three parameters simulated in this MCMC object.  Working on the raw data, one way of doing this is to write
+```{r}
+c("alpha1"=mean(oCRMPosteriorShort$mcmc[[1]][ ,"alpha[1]"]),
+   "alpha2"=mean(oCRMPosteriorShort$mcmc[[1]][ , "alpha[2]"]),
+   "beta"=mean(oCRMPosteriorShort$mcmc[[1]][ , "beta"]))
 ```
 
-Vignettes are long form documentation commonly included in packages. Because they are part of the distribution of the package, they need to be as compact as possible. The `html_vignette` output type provides a custom style sheet (and tweaks some options) to ensure that the resulting html is as small as possible. The `html_vignette` format:
+This works, but it is ugly, long and - most importantly - not robust code: if the column names change or if more columns are added to the input object, the code fails.  Moreover, the `oCRMPosteriorShort` object actually contains samples from  3 MCMC chains that simulate the same process, saved in a list.  The code to summarise the overall results of the simulation is awkward.  And may also depend on the number of elements in the list.
 
-- Never uses retina figures
-- Has a smaller default figure size
-- Uses a custom CSS stylesheet instead of the default Twitter Bootstrap style
+Making the `mcmc` object (or the `runjags` object which contains it) tidy removes all of these issues, and results in much more compact and robust code:
 
-## Vignette Info
-
-Note the various macros within the `vignette` section of the metadata block above. These are required in order to instruct R how to build the vignette. Note that you should change the `title` field and the `\VignetteIndexEntry` to match the title of your vignette.
-
-## Styles
-
-The `html_vignette` template includes a basic CSS theme. To override this theme you can specify your own CSS in the document metadata as follows:
-
-    output: 
-      rmarkdown::html_vignette:
-        css: mystyles.css
-
-## Figures
-
-The figure sizes have been customised so that you can easily put two images side-by-side. 
-
-```{r, fig.show='hold'}
-plot(1:10)
-plot(10:1)
+```{r, echo=FALSE}
+library(crmReporter)
 ```
 
-You can enable figure captions by `fig_caption: yes` in YAML:
-
-    output:
-      rmarkdown::html_vignette:
-        fig_caption: yes
-
-Then you can use the chunk option `fig.cap = "Your figure caption."` in **knitr**.
-
-## More Examples
-
-You can write math expressions, e.g. $Y = X\beta + \epsilon$, footnotes^[A footnote here.], and tables, e.g. using `knitr::kable()`.
-
-```{r, echo=FALSE, results='asis'}
-knitr::kable(head(mtcars, 10))
+```{r}
+tidy(oCRMPosteriorShort$mcmc[[1]]) %>% 
+  group_by(Parameter, Index) %>% 
+  summarise(Value=mean(Value), .groups="drop")
 ```
 
-Also a quote using `>`:
+This is robust with respect to changes in the number of model parameters and their names.  The same code template can provide a summary of all the chains in the analysis:
+```{r}
+tidy(oCRMPosteriorShort) %>% 
+  group_by(Parameter, Index) %>% 
+  summarise(Value=mean(Value), .groups="drop")
+```
 
-> "He who gives up [code] safety for [code] speed deserves neither."
-([via](https://twitter.com/hadleywickham/status/504368538874703872))
+And this code is independent of the number of chains in the analysis.
+
+```{r, echo=FALSE}
+detach("package:crmReporter", unload=TRUE)
+```
+Thoughout this vignette, I will refer to the experiment in which CRM methodology is used as a *trial* in order to distinguish it from the simulation *study*, in which the operating chracteristics of one or more implementations of CRM are examined.
+
+### Installing crmReporter
+`crmReporter` is available from GitHub.  To install it, use
+```{r, eval=FALSE}
+devtools::install_github("PuzzledFace/crmReporter")
+```
+
+## Creating tidy data
+Creating tidy data with `crmReporter` is simple: use the `tidy()` verb.  Tidy works with `mcmc`s, `mcmc.list`s, `runjags`s and `runjags.list`s.
+
+```{r}
+library(crmReporter)
+
+data("oCRMPosteriorShort")
+x <- tidy(oCRMPosteriorShort)
+x %>% head()
+unique(x$Chain)
+unique(x$Parameter)
+x %>% group_by(Chain, Parameter, Index) %>% summarise(N=n(), .groups="drop")
+```
+
+Regardless of the class of the object passed to `tidy()`, it's return value has the same format.  It's always a tibble with columns called `Chain`, `Sample`, `Parameter`,  `Index` and `Value`.  These columns contain the following information:
+
+  *  `Chain`: The index of the chain which generated the `Sample`.  When the input object is of class `mcmc`, `Chain` will always be `1`.  When the input object is of class `mcmc.list`, the value of `Chain` corresponds to the index of the corresponding element of the `mcmc.list`.  When the class of the input object is `runjags` or `runjags.list`, the value of `Chain` depends on the class of the `mcmc` element it contains.
+  *  `Sample`: The index of the sample within the chain.  `Sample` honours both burn-in and thinning.  For example, if the chain has a burn-in of 1000 samples and a thinning value of 2, `Sample` will take the values 1001, 1003, 1005, ...
+  *  `Parameter` indicates the column from which `Value` was taken.  If the column is indexed (that is, has a name of the form `<param>[<index>]`, such as 'alpha[1]` or `alpha[2]` in the in the introduction above) The value in `parameter` is simply `<name>` and `<index>` will be found in `Index`.  If the column is not indexed, `Parameter` is simply the raw column name.  The pattern used to identify indexed columns (and separate their components) can be changed using the `indexedPattern` parameter to `tidy()`.
+  * For an indexed column, `Index` identifies the value of the index, as described in `Parameter` above.
+  * `Value` contains the value of the given, possibly `Index`ed, `Parameter` that was drawn at the given `Sample` of the given `Chain`. 
+
+>TODO: Check the function works as expected when the input object's class is `runjags.list`.  I might have an indexing problem.
+
+Usually, you'll be more interested in functions of the model's parameters rather than in the model parameters themselves.  For example, in a logistic regression model of dose-toxicity, you'll want to know the fitted probabilities of toxiicty for  set of doses rather than in the slope and intercept of the regression line of the log odds against dose.  If your modelling code derives those probabilities directly, you're good to go: `tidy()`'s output tibble will already contain them: they can be identified by the appropriate values of `Parameter` and `Index`.  For example, `... %>% filter(Parameter == "Prob", Dose == 3)` might identify the sampled probabilities of toxicity associated with dose 3.
+
+If your modelling code doesn't derive the quantities you're really interested in, you'll need to calculate them yourself.  `crmReporter` refers to this as *augmenting* the tibble and provides convenience methods for augmenting each of the example datsets provided.  You will need to provide your own code to augment the results of your own analyses: `crmPack` can't help you because it has no knowledge of the link between model paramaters and quantities of interest.
+
+## Reporting a CRM trial
+### Basic tables and graphs
+#### Patient summaries
+`patientSummary` creates a tibble reporting the number of participants treated at each dose, together with their toxicity status.
+```{r}
+data("oQuigleyPatientData")
+patientSummary <- patientSummary(oQuigleyPatientData)
+patientSummary %>% 
+  kable(col.names=c("Dose", "Treated", "Evaluable", "No Tox", "DLT")) %>% 
+  add_header_above(c(" "=1, "Number of patients"=2, "Status"=2))
+```
+The status of the trial can also be illustrated graphically.
+```{r}
+subjectGraph(oQuigleyPatientData, showCohort=FALSE)
+```
+
+and
+```{r}
+allocationPlot(oQuigleyPatientData, doseGrid=1:6)
+```
+
+an estimate of the probability of toxicity at each dose can be added to the allocation plot.  See below.
+
+#### Summarising the posterior
+One of the most important things to do when reporting a CRM trial is to summarise the posterior estimates of toxicity at each dose.  `crmReporter` provides various utilities to do this.  The first is the `createDoseSummary()` function:
+
+```{r}
+
+data("oQuigleyPosterior")
+x <- oQuigleyPosterior %>% tidy() %>% augmentOQuigleyData() %>% filter(Parameter == "Prob")
+summary <- createDoseSummary(x)
+summary
+```
+which can then be `kable`d to produce something more user-friendly:
+```{r}
+summary %>% 
+  select(Dose, Mean, Q1:Q5) %>% 
+  kable(col.names=c("Dose", "Mean", "5%", "10%", "Median", "90%", "95%"), digits=2) %>% 
+  add_header_above(c(" "=2, "Quantiles"=5)) %>% 
+  add_header_above(c(" "=1, "p(Toxicity)"=6))
+```
+or plotted using the `doseToxicityGraph()` function:
+```{r}
+doseToxicityGraph(
+  summary %>% dplyr::select(-N),
+  targetTox=0.20,
+  pivot=TRUE)
+```
+
+Combining the participant and posterior summaries can be useful.
+
+```{r}
+patientSummary %>% 
+  right_join(summary, by="Dose") %>% 
+  select(Dose, Treated, Evaluable, None, Tox, Mean, Q1:Q5) %>% 
+  replace(is.na(.), 0) %>% 
+  kable(
+    digits=2,
+    col.names=c("Dose", "Treated", "Evaluable", "No Tox", "Tox", "Mean", "5%", "10%", "Median", "90%", "95%")
+  ) %>% 
+  add_header_above(c(" "=1, "Patients"=4, " "=1, "Quantiles"=5)) %>%
+  add_header_above(c(" "=5, "p(Tox)"=6))
+```
+
+The densities for p(Tox | Dose) are also easily plotted.
+```{r}
+x <- oQuigleyPosterior %>% tidy() %>% augmentOQuigleyData() %>% filter(Parameter == "Prob")
+posteriorPlot(x)
+```
+
+If the `recDose` parameter is used, the posterior of the recommended dose is highlighted.
+
+```{r}
+posteriorPlot(x, recDose=2)
+```
+
+Using the `targetTox` parameter will highlight the targetToxicity rate (or the target toxicity band if a vector of length 2 is provided).
+
+```{r}
+posteriorPlot(x, recDose=2, targetTox=0.2)
+```
+
+### Advanced summaries
+
+## System information
+```{r}
+sessionInfo()
+```
+
+## Appendix: Augmenting an MCMC tibble
+### Starting with a tidied MCMC tibble
+
+Calculating the functions of the model parameters in which you are interested [for example, p(DLT|dose)] in your simulation code will always result in the need to write less code than if you derive them later on.  However, that's not always practical.  This appendix demonstrates how to derive these functions of interest, both from `tidy`ed output as well as raw `runjags` output.  Raw output from other MCMC packages may need slightly different processing, but the principles will remain the same.
+
+Returning the oCRM example above, a tibble containing the posterior estimates of the probabilities of toxicities at each dose can be obtained with
+```{r}
+x <- tidy(oCRMPosteriorShort)
+augmentedX <- augmentOCRMData(x)
+augmentedX %>% head()
+```
+
+`augmentedX <- augmentOCRMData(x)` is equivalent to
+```{r}
+augmentedX <- x %>%
+    dplyr::select(Chain, Sample) %>%
+    tidyr::expand(
+      tidyr::nesting(Chain, Sample),
+      Dose=1:10
+    )  %>%
+    dplyr::left_join(x, by=c("Chain", "Sample")) %>%
+    dplyr::group_by(Chain, Sample) %>%
+    dplyr::mutate(
+      Temp=ifelse(is.na(Index), Parameter, paste0(Parameter, "_", Index))
+    ) %>%
+    dplyr::select(-Parameter, -Index) %>%
+    tidyr::spread(key=Temp, value=.data$Value) %>%
+    dplyr::mutate(
+      XHat=Dose-11,
+      Z1=alpha_1 + beta*XHat,
+      Z2=alpha_2 + beta*XHat,
+      Prob_1=exp(Z1)/(1 + exp(Z1)),
+      Prob_2=exp(Z2)/(1 + exp(Z2))
+    ) %>%
+    dplyr::select(-Z1, -Z2) %>%
+    tidyr::pivot_longer(
+      names_to="Parameter", 
+      values_to="Value", 
+      cols=c(alpha_1, alpha_2, beta, Prob_1, Prob_2)
+    ) %>% 
+    tidyr::separate(
+      col=Parameter,
+      into=c("Parameter", "Index", NA),
+      sep="_",
+      convert=TRUE,
+      fill="right") %>%
+    dplyr::arrange(Chain, Sample, Dose, Parameter, Index) %>% 
+    dplyr::ungroup()
+
+augmentedX %>% head()
+```
+Long, but not impossible.  Note that The `Parameter` column now includes rows with the value `Prob`.  The `Value`s in these columns contain the derived probabilities of p(sub-DLT or DLT | Dose) [when `Index == 1`] and p(DLT | Dose) [when `Index == 2`].
+
+### Producing an augmented tibble directly from an `mcmc` or `runjags` object
+With an appropriately defined model, you can create an augmented tibble directly from a `runjags` or `mcmc` object (or their `.list` variants).  Consider the following model definition for an oCRM model:
+```{r}
+modelString <- 
+  "data {
+     for (i in 1:length(XHat)) {
+       for (j in 1:2) {
+         DLT[i, j] <- Toxicity[i] >= j
+       }
+     }
+   }
+   model {
+    # Prior
+    alpha[1] ~ dnorm(meanAlpha1, 1/(sdAlpha1*sdAlpha1))  
+    alpha[2] ~ dnorm(meanAlpha2, 1/(sdAlpha2*sdAlpha2))
+    #Common slope.  LogNormal distribution ensures slope is positive
+    gamma ~ dnorm(meanLogBeta, 1/(sdLogBeta*sdLogBeta))
+    beta <- exp(gamma)
+    # Posterior
+    for (i in 1:n) {
+      for (j in 1:2) {
+        z[i, j] <- alpha[j] + beta * XHat[i]
+        p[i, j] <- exp(z[i, j]) / (1 + exp(z[i, j]))
+        DLT[i, j] ~ dbern(p[i, j])
+      }
+    }
+  }
+  #monitor# alpha[1], alpha[2], beta, p
+  "
+```
+Notice that the fitted probabilities of p(sub-DLT or DLT | Dose) and p(DLT | Dose) are calculated directly and stored in the `p[,]` "array".  This model can be fitted using:
+```{r}
+data("oCRMPatientData")
+post <-
+  fitModel(
+    modelString,
+    oCRMPatientData %>% dplyr::select(XHat, Toxicity),
+    sample=5000,
+    thin=2,
+    inits=list(
+      list(alpha=c(5, 3), gamma=0),
+      list(alpha=c(0, 0), gamma=3),
+      list(alpha=c(-2, 3), gamma=1)
+    ),
+    extras=list(
+      "meanAlpha1"=4,
+      "meanAlpha2"=3,
+      "meanLogBeta"=log(1),
+      "sdAlpha1"=3,
+      "sdAlpha2"=4,
+      "sdLogBeta"=3)
+  )
+```
+and the output can be passed directly to `tidy()`:
+```{r}
+tidyPost <- post %>% tidy()
+tidyPost %>% head()
+```
+
+Note that `tidy()` currently doesn't handle `Index`es with more than one dimension particularly well, so a little more processing is desirable.  Here, the value of `Index` for rows where `Parameter == p` has the form `<x>,<y>`,  where `<x>` indexes the dose and `<y>` indicates either p(sub-DLT or DLT | Dose) or p(DLT | Dose) for `<y>` equal to `1` and `2` respectively.  So...
+
+```{r}
+tidyPost <- tidyPost %>% 
+            tidyr::separate(
+              col=Index,
+              into=c("Index1", "Index2"),
+              sep="([,])",
+              convert=TRUE,
+              remove=FALSE,
+              fill="right"
+            ) %>% 
+            mutate(
+              OldIndex=Index,
+              Index=as.numeric(ifelse(Parameter == "p", Index2, Index)),
+              Dose=ifelse(Parameter == "p", Index1, NA)
+              # ,
+              # Index=ifelse(Parameter == "p", NA, Index)
+            ) %>% 
+            # select(-Index1, -Index2) %>% 
+            arrange(Chain, Sample, Parameter, Dose, Index)
+tidyPost %>% head()
+```

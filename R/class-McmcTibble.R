@@ -26,17 +26,17 @@ setMethod("initialize",
           "McmcTibble",
            function (.Object, ...) {
              args <- list(...)
-             .Object <- callNextMethod()
+             .Object <- methods::callNextMethod()
              .Object@chainCount <- ifelse(is.na(args[["chainCount"]]), NA, args[["chainCount"]])
              .Object@chainLength <- ifelse(is.na(args[["chainLength"]]), NA, args[["chainLength"]])
              .Object@thin <- ifelse(is.na(args[["thin"]]), NA, args[["thin"]])
              .Object@modelString <- ifelse(is.na(args[["modelString"]]), "", args[["modelString"]])
              .Object@augmented <- FALSE
-             validObject(.Object)
+             methods::validObject(.Object)
              .Object
            })
 
-#validObject(.McmcTibble())
+#methods::validObject(.McmcTibble())
 
 McmcTibble <- function(obj, augment=NULL, ...)
 {
@@ -114,7 +114,7 @@ McmcTibble <- function(obj, augment=NULL, ...)
     rv@columnLabels <- names(rv@data)
     rv@augmented <- TRUE
   }
-  validObject(rv)
+  methods::validObject(rv)
   return(rv)
 }
 
@@ -167,13 +167,13 @@ augmentOCRMData <- function(d, doseGrid=1:10) {
   return(d)
 }
 
-ocrm <- generateOCRMData(chainLength=5000)
-x <- ocrm[["posterior"]]
-patData <- ocrm[["patients"]]
-y <- McmcTibble(x)
-y1 <- augment(y, augmentOCRMData, 1:10)
-z <- McmcTibble(x$mcmc)
-z1 <- augment(z, augmentOCRMData, 1:10)
-z1
-w <- McmcTibble(x, augment=augmentOCRMData, doseGrid=1:10)
-w
+# ocrm <- generateOCRMData(chainLength=5000)
+# x <- ocrm[["posterior"]]
+# patData <- ocrm[["patients"]]
+# y <- McmcTibble(x)
+# y1 <- augment(y, augmentOCRMData, 1:10)
+# z <- McmcTibble(x$mcmc)
+# z1 <- augment(z, augmentOCRMData, 1:10)
+# z1
+# w <- McmcTibble(x, augment=augmentOCRMData, doseGrid=1:10)
+# w

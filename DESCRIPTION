@@ -1,4 +1,4 @@
-Package: crmreporter
+Package: crmReporter
 Type: Package
 Title: Utility Functions for the Design and Reporting of CRM Trials
 Version: 0.1.0
@@ -18,16 +18,20 @@ Suggests:
     runjags,
     knitr,
     rmarkdown,
-    crmPack,
-    officer,
     kableExtra
-RoxygenNote: 6.1.0
+RoxygenNote: 7.1.0
 Imports: 
     dplyr,
     tidyr,
     tibble,
     rlang,
     magrittr,
+    methods,
     ggplot2,
-    methods
+    officer,
+    stringr,
+    crmPack,
+    broom,
+    purrr,
+    tidyselect
 VignetteBuilder: knitr

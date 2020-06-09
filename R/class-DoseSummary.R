@@ -124,10 +124,10 @@ setMethod("renderKnitr",
                    showFootnotes=TRUE,
                    format=c("html", "latex", "markdown", "pandoc", "rst")) {
             #Initialise
-            p_ <- enquo(parameter)
-            d_ <- enquo(dose)
-            s_ <- enquo(statistic)
-            v_ <- enquo(value)
+            p_ <- dplyr::enquo(parameter)
+            d_ <- dplyr::enquo(dose)
+            s_ <- dplyr::enquo(statistic)
+            v_ <- dplyr::enquo(value)
             format <- match.arg(format)
 
             #Begin
@@ -143,7 +143,7 @@ setMethod("renderKnitr",
             }
             #Merge with patient data, if necessary
             if (!is.null(patientSummary)) {
-              d <- patientSummary@summary %>% full_join(d, by=quo_name(d_))
+              d <- patientSummary@summary %>% dplyr::full_join(d, by=dplyr::quo_name(d_))
             }
             #Post process summary data
             if (is.function(hook)) d <- hook(d)

@@ -1,5 +1,7 @@
 ---
+always_allow_html: true
 output: github_document
+
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -11,39 +13,69 @@ knitr::opts_chunk$set(
   fig.path = "man/figures/README-",
   out.width = "100%"
 )
-```
-# crmreporter
 
-The goal of crmreporter is to ...
+library(tidyverse)
+library(knitr)
+library(kableExtra)
+```
+# crmReporter
+
+The `crmReporter` package is designed to provide a simple interface between `crmPack` (and other MCMC packages) and [the tidyverse](www.tidyverse.org) and to augment the reporting facilities provided by `crmPack`, `coda`, `runjags` and other packages relating to MCMC simulation.
+
 
 ## Installation
-
-You can install the released version of crmreporter from [CRAN](https://CRAN.R-project.org) with:
-
-``` r
-install.packages("crmreporter")
+`crmReporter` is available from GitHub.  To install it, use
+```{r, eval=FALSE}
+devtools::install_github("PuzzledFace/crmReporter")
 ```
 
-## Example
+## Creating tidy data
+Creating tidy data with `crmReporter` is simple: use the `tidy()` verb.  Tidy works with `mcmc`s, `mcmc.list`s, `runjags`s and `runjags.list`s.
+```{r}
+library(crmReporter)
 
-This is a basic example which shows you how to solve a common problem:
-
-```{r example}
-## basic example code
+data("oCRMPosteriorShort")
+x <- oCRMPosteriorShort %>% tidy()
+x %>% head()
 ```
 
-What is special about using `README.Rmd` instead of just `README.md`? You can include R chunks like so:
+You can use the output from `tidy()` as input to other `crmReporter` functions or to your own code built within the Tidyverse.  Here are some sample outputs from `crmReporter` functions.  They all use data from the first example study in the original O'Quigley paper.
 
-```{r cars}
-summary(cars)
+```{r, subjectGraph, echo=FALSE}
+data("oQuigleyPatientData")
+patientSummary <- patientSummary(oQuigleyPatientData)
+
+patientSummary %>% 
+  kable(col.names=c("Dose", "Treated", "Evaluable", "No Tox", "DLT")) %>% 
+  add_header_above(c(" "=1, "Number of patients"=2, "Status"=2))
+
+subjectGraph(oQuigleyPatientData, showCohort=FALSE) + labs(title="Patient allocations and toxicity status")
 ```
+```{r, allocationPlot, echo=FALSE}
+allocationPlot(oQuigleyPatientData, doseGrid=1:6) + labs(title="Patient toxicity status by dose")
 
-You'll still need to render `README.Rmd` regularly, to keep `README.md` up-to-date.
-
-You can also embed plots, for example:
-
-```{r pressure, echo = FALSE}
-plot(pressure)
+data("oQuigleyPosterior")
+x <- oQuigleyPosterior %>% tidy() %>% augmentOQuigleyData() %>% filter(Parameter == "Prob")
+summary <- createDoseSummary(x)
 ```
-
-In that case, don't forget to commit and push the resulting figure files, so they display on GitHub!
+```{r, echo=FALSE}
+patientSummary %>% 
+  right_join(summary, by="Dose") %>% 
+  select(Dose, Treated, Evaluable, None, Tox, Mean, Q1:Q5) %>% 
+  replace(is.na(.), 0) %>%
+  kable(
+    digits=2,
+    col.names=c("Dose", "Treated", "Evaluable", "No Tox", "Tox", "Mean", "5%", "10%", "Median", "90%", "95%")
+  ) %>%
+  add_header_above(c(" "=1, "Patients"=4, " "=1, "Quantiles"=5)) %>%
+  add_header_above(c(" "=5, "p(Tox)"=6))
+```
+```{r, doseToxicityGraph, echo=FALSE}
+x <- oQuigleyPosterior %>% tidy() %>% augmentOQuigleyData()
+y <- x %>% filter(Parameter == "Prob")
+y <- createDoseSummary(y)
+doseToxicityGraph(y, targetTox=0.20, pivot=TRUE) + labs(title="Posterior dose-toxicity curve")
+```
+```{r, posteriorPlot, echo=FALSE}
+posteriorPlot(x, recDose=2) + labs(title="Posterior densities for p(Tox | Dose)")
+```

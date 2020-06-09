@@ -4,29 +4,22 @@
 \alias{createDoseSummary}
 \title{Create Summary Statistics from a MCMC Samples}
 \usage{
-createDoseSummary(data, dose = Dose, var = Prob,
-  summaryStats = dplyr::funs(Mean = mean(., na.rm = TRUE), SD =
-  stats::sd(., na.rm = TRUE), Q = list(tibble::enframe(stats::quantile(.,
-  probs = quantiles, na.rm = TRUE, names = FALSE), name = "Quantile", value
-  = "Value"))), quantiles = c(0.05, 0.1, 0.5, 0.9, 0.95),
-  normalise = TRUE)
+createDoseSummary(
+  data,
+  group = Dose,
+  quantiles = c(0.05, 0.1, 0.5, 0.9, 0.95),
+  widen = TRUE
+)
 }
 \arguments{
 \item{data}{the mcmc tibble to be summarised}
 
-\item{dose}{the name of the column in \code{data} which defines the dose}
+\item{group}{the name of the column in \code{data} which defines the grouping}
 
-\item{var}{the name(s) of the variable(s) to be summarised.  See Usage notes
-below.}
+\item{quantiles}{the quantiles to be produced.}
 
-\item{summaryStats}{the statistics to be produced.  See Usage notes below.}
-
-\item{quantiles}{the quantiles to be produced.  Convenience parameter to
-avoid having to respecify the whole of \code{summaryStats} just to get
-different quantiles.}
-
-\item{normalise}{Should the return value be normalised?  See Usage notes
-below.}
+\item{widen}{Should \code{df-col}s and \code{list} columns in the return
+value be expanded?  See Usage notes below.}
 }
 \value{
 a tibble containing the requested summary statistics.  See Usage
@@ -34,49 +27,20 @@ a tibble containing the requested summary statistics.  See Usage
 }
 \description{
 Given a tibble equivalent of a \code{mcmc} or \code{mcmc.list} object,
-creates a tibble of summary statistics by dose.
+creates a tibble of standard summary statistics by dose.
 }
 \section{Usage notes}{
 
-The \code{summaryStats} argument provides flexibility at the cost of
-complexity.  However, the default value, which returns the mean, standard
-deviation, and arbitrary quantiles, should be sufficient for most purposes.
-The \code{quantiles} argument allows arbitrary quantiles to be specified
-without the need to respecify  \code{summaryStats} completely.
-
-By default, the returned tibble contains three columns: Dose, Statistic and
-Value, with the obvious interpretations.  If \code{normalise=FALSE}, the
-tibble contains the column Dose, together with one column for each of the
-summary statistics requested.  The names of the columns is either the name
-of the function which produces the statistic, or as specified by the name of
-the corresponding element in the \code{summaryStats} argument.  If a summary
-function returns more than one element, the corresponding column is nested.
-For example, with \code{normalise=FALSE} and \code{summaryStats} at its
-default value, the returned value contains columns named Dose, Mean, SD and
-Q.  Each value of Q is itself a tibble with two columns (Quantile and Value)
-and five rows.
-
-More than one variable can be specified in \code{var}.  For example,
-\code{var=Prob1:Prob2}.  In this case, each column (apart from Dose) in the
-returned tibble will be nested, and the returned value most likely need
-post-processing, as \code{normalise=TRUE} will almost certainly fail.
-
-If more than one of the requested summary statistics return multiple values
-AND the number of values returned differs between summary statistics,
-\code{normalise=TRUE} will fail:  set \code{normalise=FALSE} and post-process
-the returned value in a custom fashion.
+\code{createDoseSummary} is a convenience wrapper around
+\code{\link{createCustomDoseSummary}} that produces a standard summary tibble
+that reports the mean and quantiles (defined by the \code{quantiles} parameter
+by \code{group}.  The default action is to report the mean, 5th, 10th, 50th,
+90th and 95th centiles of \code{Value} grouped by \code{Dose}.  See
+ \code{\link{createCustomDoseSummary}} for more details.
 }
 
 \examples{
-#Generate some test data
-x <- runjagsToTibble(generateOCRMData(chainLength=1000)[["posterior"]])
-x <- augmentOCRMData(x)
-#Default output
-createDoseSummary(x, var=Prob2)
-#Unnormalised output
-createDoseSummary(x, var=Prob2, normalise=FALSE)
-#Default output, spread for presentation
-createDoseSummary(x, var=Prob2) \%>\% tidyr::spread(key=Statistic, value=Value)
-#Multiple variables
-createDoseSummary(x, var=Prob1:Prob2)
+data(oCRMPosteriorShort)
+x <- oCRMPosteriorShort \%>\% tidy() \%>\% augmentOCRMData()
+createDoseSummary(x)
 }

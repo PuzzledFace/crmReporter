@@ -19,7 +19,6 @@ Sample <- NA
 Index <- NA
 Parameter <- NA
 Prob <- NA
-Prob <- NA
 . <- NA
 Quantile <- NA
 alpha <- NA
@@ -30,3 +29,11 @@ Ribbon <- NA
 Band <- NA
 LowerLimit <- NA
 MaxIncrement <- NA
+Statistic <- NA
+Temp_ <- NA
+Value <- NA
+N <- NA
+Treated <- NA
+Evaluable <- NA
+Label <- NA
+RecDoseFlag <- NA

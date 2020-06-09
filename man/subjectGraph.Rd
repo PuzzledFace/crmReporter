@@ -4,10 +4,21 @@
 \alias{subjectGraph}
 \title{Graph of Dose Adminsitered vs Subject Number}
 \usage{
-subjectGraph(d, x = SubjectID, y = Dose, cohort = Cohort,
-  tox = Toxicity, toxColours = NA, toxLabels = NA,
-  showCohorts = TRUE, xLabel = "Subject", yLabel = "Dose",
-  mtd = NA, type = c("crm", "ocrm"), ...)
+subjectGraph(
+  d,
+  x = SubjectID,
+  y = Dose,
+  cohort = Cohort,
+  tox = Toxicity,
+  toxColours = NA,
+  toxLabels = NA,
+  showCohorts = TRUE,
+  xLabel = "Subject",
+  yLabel = "Dose",
+  mtd = NA,
+  type = c("crm", "ocrm"),
+  ...
+)
 }
 \arguments{
 \item{d}{a tibble containing subject numbers, dose alloactions and
@@ -62,6 +73,6 @@ If \code{toxLabels} and/or \code{toxColours} are specfied, the values
 }
 
 \examples{
-x <- generateOCRMData(chainLength=1000)[["patients"]]
-subjectGraph(x, type="ocrm")
+data(oCRMPatientData)
+subjectGraph(oCRMPatientData, type="ocrm")
 }

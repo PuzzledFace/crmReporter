@@ -4,8 +4,14 @@
 \alias{fitModel}
 \title{Utility Function to Fit a JAGS Model}
 \usage{
-fitModel(modelString, observedData, extras = list(), inits = list(),
-  auto = FALSE, ...)
+fitModel(
+  modelString,
+  observedData,
+  extras = list(),
+  inits = list(),
+  auto = FALSE,
+  ...
+)
 }
 \arguments{
 \item{modelString}{the JAGS model string}

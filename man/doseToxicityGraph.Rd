@@ -4,21 +4,29 @@
 \alias{doseToxicityGraph}
 \title{Produce a Dose-Toxicity Curve}
 \usage{
-doseToxicityGraph(d, dose = Dose, lines = c("Mean", "Median"),
-  ribbons = list(quantile = "Q\\\\d*"), quantiles = c(0.05, 0.1, 0.5,
-  0.9, 0.95), colours = c(mean = "black", median = "blue", quantile =
-  "steelblue"), yLabel = "p(Toxicity)", xLabel = "Dose",
-  labels = c(quantile = "Posterior CIs", lines = "Dose-tox curve",
-  quantile1 = "10\%-90\%", quantile2 = "20\%-80\%"), targetTox = 0.33,
-  alphaRange = c(0.2, 0.4), defaultLegends = TRUE)
+doseToxicityGraph(
+  data,
+  dose = Dose,
+  lines = c("Mean", "Median"),
+  ribbons = list(quantile = "Q\\\\d*"),
+  quantiles = c(0.05, 0.1, 0.5, 0.9, 0.95),
+  colours = c(mean = "black", median = "blue", quantile = "steelblue"),
+  yLabel = "p(Toxicity)",
+  xLabel = "Dose",
+  labels = c(quantile = "Posterior CIs", lines = "Dose-tox curve", quantile1 =
+    "10\%-90\%", quantile2 = "20\%-80\%"),
+  targetTox = 0.33,
+  alphaRange = c(0.2, 0.4),
+  defaultLegends = TRUE,
+  pivot = NA
+)
 }
 \arguments{
-\item{d}{the input tibble, created by \code{createDoseSummary}, which
-must be normalised}
+\item{data}{the input tibble, created by \code{createDoseSummary}}
 
-\item{dose}{the column in \code{d} that defines the dose}
+\item{dose}{the column in \code{data} that defines the dose}
 
-\item{lines}{a vector of \code{Parameter}s in \code{d} whose \code{Value}s
+\item{lines}{a vector of \code{Parameter}s in \code{data} whose \code{Value}s
 are to be represented as lines in the graph.  See Usage notes below.}
 
 \item{ribbons}{a list of sets of (pairs of) \code{Parameter}s whose
@@ -54,6 +62,13 @@ the graph.}
 graph elements.  If \code{FALSE} no legends are defined, the value of
 code{labels} is ignored and the resulting plot will almost certainly need
 custom post-processing to be useful}
+
+\item{pivot}{Should \code{data} be normalised?  If \code{NA}, the default,
+\code{data} is normalised if it does not contain only columns \code{dose},
+\code{Statistic} and \code{Value}.  A warning is printed if pivoting is required.
+If \code{TRUE}, \code{data} is pivoted only if necessary, but no warning is printed.
+If \code{FALSE}, \code{data} is never normalised and an error occurs if the required
+columns are not found.}
 }
 \value{
 a ggplot object containing the requested plot
@@ -98,8 +113,13 @@ so on.  These pairs are then processed as described above.
 }
 
 \examples{
-x <- runjagsToTibble(generateOCRMData(chainLength=1000)[["posterior"]])
-x <- augmentOCRMData(x)
-y <- createDoseSummary(x, var=Prob1) \%>\% dplyr::filter(Statistic != "SD")
-doseToxicityGraph(y, targetTox=c(0.15, 0.30))
+data(oCRMPosteriorShort)
+x <- oCRMPosteriorShort \%>\%
+       tidy() \%>\%
+       augmentOCRMData() \%>\%
+       dplyr::filter(Parameter == "Prob", Index == 2)
+doseToxicityGraph(
+  createDoseSummary(x) \%>\% dplyr::select(-N),
+  targetTox=c(0.15, 0.30),
+  pivot=TRUE)
 }

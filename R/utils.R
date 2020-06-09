@@ -1,3 +1,17 @@
+#' local copy of tidyselect:::where, which is not excported, but needed.
+#' @param fn the function used to filter the object
+.where <- function (fn)
+{
+  predicate <- rlang::as_function(fn)
+  function(x, ...) {
+    out <- predicate(x, ...)
+    if (!rlang::is_bool(out)) {
+      rlang::abort("`where()` must be used with functions that return `TRUE` or `FALSE`.")
+    }
+    out
+  }
+}
+
 modifyQuantileLabels <- function(labels,
                                  quantiles,
                                  pattern="Q(\\d+)",
